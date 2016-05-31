@@ -1,6 +1,5 @@
 // AFHTTPSessionManagerTests.m
-//
-// Copyright (c) 2013-2014 AFNetworking (http://afnetworking.com)
+// Copyright (c) 2011–2015 Alamofire Software Foundation (http://alamofire.org/)
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -104,7 +103,7 @@
         NSURL *dirURL  = [[[NSFileManager defaultManager] URLsForDirectory:NSLibraryDirectory inDomains:NSUserDomainMask] lastObject];
         return [dirURL URLByAppendingPathComponent:@"t1.file"];
     }];
-    
+
     NSURLSessionDownloadTask *downloadTask = [self.manager downloadTaskWithRequest:[NSURLRequest requestWithURL:self.baseURL]
                                                                           progress:nil
                                                                        destination:nil
@@ -122,7 +121,7 @@
     __block BOOL destinationBlockExecuted = NO;
     __block BOOL completionBlockExecuted = NO;
     __block NSURL *downloadFilePath = nil;
-    
+
     NSURLSessionDownloadTask *downloadTask = [self.manager downloadTaskWithRequest:[NSURLRequest requestWithURL:self.baseURL]
                                                                           progress:nil
                                                                        destination:^NSURL *(NSURL *targetPath, NSURLResponse *response) {
@@ -140,6 +139,26 @@
     expect(downloadFilePath).willNot.beNil();
 }
 
+- (void)testThatSerializationErrorGeneratesErrorAndNullTaskForGET {
+    XCTestExpectation *expectation = [self expectationWithDescription:@"Serialization should fail"];
+
+    [self.manager.requestSerializer setQueryStringSerializationWithBlock:^NSString * _Nonnull(NSURLRequest * _Nonnull request, id  _Nonnull parameters, NSError * _Nullable __autoreleasing * _Nullable error) {
+        *error = [NSError errorWithDomain:@"Custom" code:-1 userInfo:nil];
+        return @"";
+    }];
+
+    NSURLSessionTask *nilTask;
+    nilTask = [self.manager
+               GET:@"test"
+               parameters:@{@"key":@"value"}
+               success:nil
+               failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
+                   XCTAssertNil(task);
+                   [expectation fulfill];
+               }];
+    XCTAssertNil(nilTask);
+    [self waitForExpectationsWithTimeout:10.0 handler:nil];
+}
 
 
 @end
